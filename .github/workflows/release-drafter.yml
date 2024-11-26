@@ -1,104 +1,127 @@
-name: Release Drafter
-
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types:
-      - closed
-
-jobs:
-  draft-release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Get the latest tag version
-        id: get_version
-        run: |
-          # Get the latest tag (e.g., v1.0.0). If no tags exist, default to v0.0.0.
-          LATEST_TAG=$(git describe --tags --abbrev=0 || echo "v0.0.0")
-          echo "Latest tag: $LATEST_TAG"
-
-          # Strip the 'v' from the tag (e.g., v1.0.0 -> 1.0.0)
-          VERSION=${LATEST_TAG#v}
-          echo "Version: $VERSION"
-
-          # Split the version into major, minor, patch
-          IFS='.' read -r -a VERSION_PARTS <<< "$VERSION"
-          NEXT_MAJOR=${VERSION_PARTS[0]:-0}
-          NEXT_MINOR=${VERSION_PARTS[1]:-0}
-          NEXT_PATCH=${VERSION_PARTS[2]:-0}
-
-          # Check if the PR was merged and retrieve labels
-          LABELS=$(echo "${{ github.event.pull_request.labels }}" | jq -r '.[].name')
-          echo "Labels applied: $LABELS"
-
-          # Detect version changes based on labels
-          if [[ "$LABELS" == *"major"* ]]; then
-            NEXT_MAJOR=$((NEXT_MAJOR + 1))
-            NEXT_MINOR=0
-            NEXT_PATCH=0
-          elif [[ "$LABELS" == *"minor"* ]]; then
-            NEXT_MINOR=$((NEXT_MINOR + 1))
-            NEXT_PATCH=0
-          else
-            # Default to patch increment if no label is found
-            NEXT_PATCH=$((NEXT_PATCH + 1))
-          fi
-
-          # Export the version components to the environment
-          echo "NEXT_MAJOR=$NEXT_MAJOR" >> $GITHUB_ENV
-          echo "NEXT_MINOR=$NEXT_MINOR" >> $GITHUB_ENV
-          echo "NEXT_PATCH=$NEXT_PATCH" >> $GITHUB_ENV
-
-          # Log the next version
-          echo "Next version will be: v${NEXT_MAJOR}.${NEXT_MINOR}.${NEXT_PATCH}"
-
-      - name: Run Release Drafter
-        uses: release-drafter/release-drafter@v6.0.0
-        with:
-          config-name: release-drafter.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create or update release
-        run: |
-          # Check if there is an existing release ID, and either create a new one or update the existing one
-          if [ -z "${{ env.RELEASE_ID }}" ]; then
-            # Create a new release if no existing release was found
-            curl -X POST \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              -d "{
-                \"tag_name\": \"v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
-                \"target_commitish\": \"main\",
-                \"name\": \"Release v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
-                \"body\": \"## What's Changed\\n* No changes\",
-                \"draft\": true,
-                \"prerelease\": false
-              }" \
-              https://api.github.com/repos/${{ github.repository }}/releases
-          else
-            # Update the existing release if it exists
-            curl -X PATCH \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              -d "{
-                \"tag_name\": \"v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
-                \"target_commitish\": \"main\",
-                \"name\": \"Release v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
-                \"body\": \"## What's Changed\\n* No changes\",
-                \"draft\": true,
-                \"prerelease\": false
-              }" \
-              https://api.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}
-          fi
+---
+    name: Release Drafter
+    on:
+      push:
+        branches:
+          - main
+      pull_request:
+        types:
+          - closed
+    jobs:
+      draft-release:
+        runs-on: ubuntu-latest
+        permissions:
+          contents: write
+        steps:
+          - name: Checkout repository
+            uses: actions/checkout@v3
+            with:
+              fetch-depth: 0
+              fetch-tags: true
+          - name: Get the latest tag version
+            id: get_version
+            run: >
+              # Get the latest tag (e.g., v1.0.0). If no tags exist, default to v0.0.0.
+    
+              LATEST_TAG=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+    
+              echo "Latest tag: $LATEST_TAG"
+    
+    
+              # Strip the 'v' from the tag (e.g., v1.0.0 -> 1.0.0)
+    
+              VERSION=${LATEST_TAG#v}
+    
+              echo "Version: $VERSION"
+    
+    
+              # Split the version into major, minor, patch
+    
+              IFS='.' read -r -a VERSION_PARTS <<< "$VERSION"
+    
+              NEXT_MAJOR=${VERSION_PARTS[0]:-0}
+    
+              NEXT_MINOR=${VERSION_PARTS[1]:-0}
+    
+              NEXT_PATCH=${VERSION_PARTS[2]:-0}
+    
+    
+              # Check if this is a PR and if labels exist
+    
+              if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+                LABELS=$(echo "${{ github.event.pull_request.labels }}" | jq -r '.[].name')
+                echo "Labels applied: $LABELS"
+    
+                # Detect version changes based on labels
+                if [[ "$LABELS" == *"major"* ]]; then
+                  NEXT_MAJOR=$((NEXT_MAJOR + 1))
+                  NEXT_MINOR=0
+                  NEXT_PATCH=0
+                elif [[ "$LABELS" == *"minor"* ]]; then
+                  NEXT_MINOR=$((NEXT_MINOR + 1))
+                  NEXT_PATCH=0
+                else
+                  # Default to patch increment if no label is found
+                  NEXT_PATCH=$((NEXT_PATCH + 1))
+                fi
+              else
+                # If not a PR event, assume patch increment
+                NEXT_PATCH=$((NEXT_PATCH + 1))
+              fi
+    
+    
+              # Export the version components to the environment
+    
+              echo "NEXT_MAJOR=$NEXT_MAJOR" >> $GITHUB_ENV
+    
+              echo "NEXT_MINOR=$NEXT_MINOR" >> $GITHUB_ENV
+    
+              echo "NEXT_PATCH=$NEXT_PATCH" >> $GITHUB_ENV
+    
+    
+              # Log the next version
+    
+              echo "Next version will be: v${NEXT_MAJOR}.${NEXT_MINOR}.${NEXT_PATCH}"
+          - name: Run Release Drafter
+            uses: release-drafter/release-drafter@v6.0.0
+            with:
+              config-name: release-drafter.yml
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          - name: Create or update release
+            run: >
+              # Check if there is an existing release ID, and either create a new one or
+              update the existing one
+    
+              if [ -z "${{ env.RELEASE_ID }}" ]; then
+                # Create a new release if no existing release was found
+                RELEASE_ID=$(curl -X POST \
+                  -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  -d "{
+                    \"tag_name\": \"v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
+                    \"target_commitish\": \"main\",
+                    \"name\": \"Release v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
+                    \"body\": \"## What's Changed\\n* No changes\",
+                    \"draft\": true,
+                    \"prerelease\": false
+                  }" \
+                  https://api.github.com/repos/${{ github.repository }}/releases | jq -r .id)
+                echo "Created new release with ID: $RELEASE_ID"
+              else
+                # Update the existing release if it exists
+                curl -X PATCH \
+                  -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  -d "{
+                    \"tag_name\": \"v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
+                    \"target_commitish\": \"main\",
+                    \"name\": \"Release v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
+                    \"body\": \"## What's Changed\\n* No changes\",
+                    \"draft\": true,
+                    \"prerelease\": false
+                  }" \
+                  https://api.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}
+                echo "Updated existing release with ID: $RELEASE_ID"
+              fi
+    
