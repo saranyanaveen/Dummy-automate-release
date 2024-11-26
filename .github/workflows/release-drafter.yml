@@ -58,27 +58,32 @@ jobs:
             curl -X POST \
               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Accept: application/vnd.github.v3+json" \
-              -d '{
-                "tag_name": "v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}",
-                "target_commitish": "main",
-                "name": "Release v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}",
-                "body": "## What\'s Changed\n* No changes",
-                "draft": true,
-                "prerelease": false
-              }' \
+              -d "{
+                \"tag_name\": \"v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
+                \"target_commitish\": \"main\",
+                \"name\": \"Release v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
+                \"body\": \"## What\'s Changed\n* No changes\",
+                \"draft\": true,
+                \"prerelease\": false
+              }" \
               https://api.github.com/repos/${{ github.repository }}/releases
           else
             # Update the existing release if it exists
             curl -X PATCH \
               -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Accept: application/vnd.github.v3+json" \
-              -d '{
-                "tag_name": "v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}",
-                "target_commitish": "main",
-                "name": "Release v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}",
-                "body": "## What\'s Changed\n* No changes",
-                "draft": true,
-                "prerelease": false
-              }' \
+              -d "{
+                \"tag_name\": \"v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
+                \"target_commitish\": \"main\",
+                \"name\": \"Release v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}\",
+                \"body\": \"## What\'s Changed\n* No changes\",
+                \"draft\": true,
+                \"prerelease\": false
+              }" \
               https://api.github.com/repos/${{ github.repository }}/releases/${{ env.RELEASE_ID }}
           fi
+        shell: /usr/bin/bash -e {0}
+        env:
+          NEXT_MAJOR: ${{ env.NEXT_MAJOR }}
+          NEXT_MINOR: ${{ env.NEXT_MINOR }}
+          NEXT_PATCH: ${{ env.NEXT_PATCH }}
