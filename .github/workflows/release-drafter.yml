@@ -98,6 +98,7 @@ jobs:
           NEXT_VERSION="v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}"
           echo "Preparing release for $NEXT_VERSION"
 
+<<<<<<< HEAD
           # Get the commit messages since the last tag
           COMMIT_LOG=$(git log ${LATEST_TAG}..HEAD --oneline)
 
@@ -108,6 +109,8 @@ jobs:
             CHANGELOG="## What's Changed\n$COMMIT_LOG"
           fi
 
+=======
+>>>>>>> f013352db314f2cc01d06a0e0a3e6bfe59b5d008
           # Fetch existing releases
           RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
@@ -122,7 +125,11 @@ jobs:
                 \"tag_name\": \"$NEXT_VERSION\",
                 \"target_commitish\": \"main\",
                 \"name\": \"Release $NEXT_VERSION\",
+<<<<<<< HEAD
                 \"body\": \"$CHANGELOG\",
+=======
+                \"body\": \"## What's Changed\\n* No changes\",
+>>>>>>> f013352db314f2cc01d06a0e0a3e6bfe59b5d008
                 \"draft\": true,
                 \"prerelease\": false
               }" \
@@ -135,7 +142,11 @@ jobs:
                 \"tag_name\": \"$NEXT_VERSION\",
                 \"target_commitish\": \"main\",
                 \"name\": \"Release $NEXT_VERSION\",
+<<<<<<< HEAD
                 \"body\": \"$CHANGELOG\",
+=======
+                \"body\": \"## What's Changed\\n* Updated changes\",
+>>>>>>> f013352db314f2cc01d06a0e0a3e6bfe59b5d008
                 \"draft\": true,
                 \"prerelease\": false
               }" \
