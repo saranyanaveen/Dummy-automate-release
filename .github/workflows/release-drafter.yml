@@ -72,7 +72,7 @@ jobs:
           echo "NEXT_PATCH=$NEXT_PATCH" >> $GITHUB_ENV
           echo "Next version will be: v${NEXT_MAJOR}.${NEXT_MINOR}.${NEXT_PATCH}"
 
-      - name: Create or update release
+      - name: Generate changelog and create or update release
         id: release
         run: |
           NEXT_VERSION="v${NEXT_MAJOR}.${NEXT_MINOR}.${NEXT_PATCH}"
@@ -80,10 +80,19 @@ jobs:
 
           # Get commit log between last tag and HEAD
           COMMIT_LOG=$(git log ${LATEST_TAG}..HEAD --oneline)
-          if [ -z "$COMMIT_LOG" ]; then
+
+          # Generate a structured changelog
+          CHANGELOG="## What's Changed\n"
+
+          # Categorize commits into Added, Fixed, Documentation
+          FEATURES=$(echo "$COMMIT_LOG" | grep -i '^feat' | sed 's/^/### Added\n/' )
+          BUG_FIXES=$(echo "$COMMIT_LOG" | grep -i '^fix' | sed 's/^/### Fixed\n/' )
+          DOCUMENTATION=$(echo "$COMMIT_LOG" | grep -i '^docs' | sed 's/^/### Documentation\n/' )
+
+          CHANGELOG+="$FEATURES\n$BUG_FIXES\n$DOCUMENTATION"
+
+          if [ -z "$CHANGELOG" ]; then
             CHANGELOG="No changes"
-          else
-            CHANGELOG="## What's Changed\n$COMMIT_LOG"
           fi
 
           # Fetch existing release ID if it exists
