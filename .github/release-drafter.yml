@@ -2,8 +2,8 @@
 template: |
   ## What's Changed
   $CHANGES
-name-template: Release v$NEXT_MAJOR.$NEXT_MINOR.$NEXT_PATCH
-tag-template: v$NEXT_MAJOR.$NEXT_MINOR.$NEXT_PATCH
+name-template: Release v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}
+tag-template: v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}
 categories:
   - title: 🚀 Features
     labels:
