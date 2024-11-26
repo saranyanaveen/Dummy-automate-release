@@ -20,16 +20,6 @@ jobs:
       - name: Get the latest tag version
         id: get_version
         run: |
-<<<<<<< HEAD
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Latest tag: $LATEST_TAG"
-
-          # Strip the 'v' from the tag
-          VERSION=${LATEST_TAG#v}
-          echo "Version: $VERSION"
-
-          # Split version into parts
-=======
           # Get the latest tag (e.g., v1.0.0). If no tags exist, default to v0.0.0
           LATEST_TAG=$(git describe --tags --abbrev=0 || echo "v0.0.0")
           echo "Latest tag: $LATEST_TAG"
@@ -38,17 +28,12 @@ jobs:
           VERSION=${LATEST_TAG#v}
           echo "Version: $VERSION"
 
-          # Split the version into major, minor, patch
->>>>>>> e4e3b4fcc1a10e2d52686444ad420b8c5b73193c
+          # Split version into parts
           IFS='.' read -r -a VERSION_PARTS <<< "$VERSION"
           MAJOR=${VERSION_PARTS[0]:-0}
           MINOR=${VERSION_PARTS[1]:-0}
           PATCH=${VERSION_PARTS[2]:-0}
 
-<<<<<<< HEAD
-=======
-          # Output the parsed version parts
->>>>>>> e4e3b4fcc1a10e2d52686444ad420b8c5b73193c
           echo "MAJOR=$MAJOR" >> $GITHUB_ENV
           echo "MINOR=$MINOR" >> $GITHUB_ENV
           echo "PATCH=$PATCH" >> $GITHUB_ENV
@@ -56,14 +41,8 @@ jobs:
       - name: Detect change type (major, minor, patch)
         id: detect_change
         run: |
-<<<<<<< HEAD
           if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
             LABELS=$(echo "${{ toJSON(github.event.pull_request.labels) }}" | jq -r '.[].name' || echo "")
-=======
-          # Check if this is a merged pull request
-          if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
-            LABELS=$(echo "${{ github.event.pull_request.labels }}" | jq -r '.[].name')
->>>>>>> e4e3b4fcc1a10e2d52686444ad420b8c5b73193c
             echo "Labels applied: $LABELS"
           else
             LABELS=""
@@ -75,11 +54,7 @@ jobs:
           elif [[ "$LABELS" == *"minor"* ]]; then
             VERSION_TYPE="minor"
           else
-<<<<<<< HEAD
-            VERSION_TYPE="patch"
-=======
             VERSION_TYPE="patch" # Default to patch
->>>>>>> e4e3b4fcc1a10e2d52686444ad420b8c5b73193c
           fi
 
           echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
@@ -87,10 +62,6 @@ jobs:
       - name: Calculate next version
         id: calculate_next_version
         run: |
-<<<<<<< HEAD
-=======
-          # Increment the version based on the detected change type
->>>>>>> e4e3b4fcc1a10e2d52686444ad420b8c5b73193c
           case $VERSION_TYPE in
             major)
               NEXT_MAJOR=$((MAJOR + 1))
@@ -113,11 +84,7 @@ jobs:
           echo "NEXT_MINOR=$NEXT_MINOR" >> $GITHUB_ENV
           echo "NEXT_PATCH=$NEXT_PATCH" >> $GITHUB_ENV
 
-<<<<<<< HEAD
-          echo "Next version: v${NEXT_MAJOR}.${NEXT_MINOR}.${NEXT_PATCH}"
-=======
           echo "Next version will be: v${NEXT_MAJOR}.${NEXT_MINOR}.${NEXT_PATCH}"
->>>>>>> e4e3b4fcc1a10e2d52686444ad420b8c5b73193c
 
       - name: Run Release Drafter
         uses: release-drafter/release-drafter@v6.0.0
@@ -128,32 +95,18 @@ jobs:
 
       - name: Create or update release
         run: |
-<<<<<<< HEAD
           NEXT_VERSION="v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}"
           echo "Preparing release for $NEXT_VERSION"
 
           # Fetch existing releases
           RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-=======
-          # Get the next version
-          NEXT_VERSION="v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}"
-
-          # Check if this is an existing release
-          RELEASE_ID=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
->>>>>>> e4e3b4fcc1a10e2d52686444ad420b8c5b73193c
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/releases \
             | jq -r ".[] | select(.tag_name == \"$NEXT_VERSION\").id")
 
           if [ -z "$RELEASE_ID" ]; then
-<<<<<<< HEAD
             echo "Creating a new release..."
             curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-=======
-            # Create a new release
-            curl -X POST \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
->>>>>>> e4e3b4fcc1a10e2d52686444ad420b8c5b73193c
               -H "Accept: application/vnd.github.v3+json" \
               -d "{
                 \"tag_name\": \"$NEXT_VERSION\",
@@ -165,14 +118,8 @@ jobs:
               }" \
               https://api.github.com/repos/${{ github.repository }}/releases
           else
-<<<<<<< HEAD
             echo "Updating existing release with ID: $RELEASE_ID"
             curl -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-=======
-            # Update the existing release
-            curl -X PATCH \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
->>>>>>> e4e3b4fcc1a10e2d52686444ad420b8c5b73193c
               -H "Accept: application/vnd.github.v3+json" \
               -d "{
                 \"tag_name\": \"$NEXT_VERSION\",
