@@ -33,10 +33,15 @@ jobs:
           echo "MINOR=$MINOR" >> $GITHUB_ENV
           echo "PATCH=$PATCH" >> $GITHUB_ENV
 
+          echo "Latest tag: $LATEST_TAG"
+          echo "Current version: $VERSION"
+
       - name: Detect change type (major, minor, patch)
         id: detect_change
         run: |
+          echo "Pull request labels: ${{ toJSON(github.event.pull_request.labels) }}"
           LABELS=$(echo "${{ toJSON(github.event.pull_request.labels) }}" | jq -r '.[].name' || echo "")
+          echo "Detected labels: $LABELS"
           if [[ "$LABELS" == *"major"* ]]; then
             VERSION_TYPE="major"
           elif [[ "$LABELS" == *"minor"* ]]; then
@@ -46,6 +51,7 @@ jobs:
           fi
 
           echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
+          echo "Version type: $VERSION_TYPE"
 
       - name: Calculate next version
         id: calculate_next_version
@@ -67,6 +73,7 @@ jobs:
               NEXT_PATCH=$((PATCH + 1))
               ;;
           esac
+
           echo "NEXT_MAJOR=$NEXT_MAJOR" >> $GITHUB_ENV
           echo "NEXT_MINOR=$NEXT_MINOR" >> $GITHUB_ENV
           echo "NEXT_PATCH=$NEXT_PATCH" >> $GITHUB_ENV
@@ -82,18 +89,20 @@ jobs:
           COMMIT_LOG=$(git log ${LATEST_TAG}..HEAD --oneline)
 
           # Generate a structured changelog
-          CHANGELOG="## What's Changed\n"
+          CHANGELOG=$(cat <<EOF
+          ## What's Changed
 
-          # Categorize commits into Added, Fixed, Documentation
-          FEATURES=$(echo "$COMMIT_LOG" | grep -i '^feat' | sed 's/^/### Added\n/' )
-          BUG_FIXES=$(echo "$COMMIT_LOG" | grep -i '^fix' | sed 's/^/### Fixed\n/' )
-          DOCUMENTATION=$(echo "$COMMIT_LOG" | grep -i '^docs' | sed 's/^/### Documentation\n/' )
+          ### Added
+          $(echo "$COMMIT_LOG" | grep -i '^feat' | sed 's/^/- /')
 
-          CHANGELOG+="$FEATURES\n$BUG_FIXES\n$DOCUMENTATION"
+          ### Fixed
+          $(echo "$COMMIT_LOG" | grep -i '^fix' | sed 's/^/- /')
 
-          if [ -z "$CHANGELOG" ]; then
-            CHANGELOG="No changes"
-          fi
+          ### Documentation
+          $(echo "$COMMIT_LOG" | grep -i '^docs' | sed 's/^/- /')
+
+          EOF
+          )
 
           # Fetch existing release ID if it exists
           RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
