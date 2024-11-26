@@ -1,4 +1,5 @@
 name: Release Versioning
+
 on:
   push:
     branches:
@@ -10,13 +11,16 @@ on:
 jobs:
   versioning:
     runs-on: ubuntu-latest
+
     steps:
+      # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
           fetch-tags: true
 
+      # Step 2: Get the latest tag version
       - name: Get the latest tag version
         id: get_version
         run: |
@@ -38,6 +42,7 @@ jobs:
           echo "MINOR=$MINOR" >> $GITHUB_ENV
           echo "PATCH=$PATCH" >> $GITHUB_ENV
 
+      # Step 3: Detect change type (major, minor, patch)
       - name: Detect change type (major, minor, patch)
         id: detect_change
         run: |
@@ -54,11 +59,12 @@ jobs:
           elif [[ "$LABELS" == *"minor"* ]]; then
             VERSION_TYPE="minor"
           else
-            VERSION_TYPE="patch" # Default to patch
+            VERSION_TYPE="patch"  # Default to patch
           fi
 
           echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
 
+      # Step 4: Calculate next version
       - name: Calculate next version
         id: calculate_next_version
         run: |
@@ -86,6 +92,7 @@ jobs:
 
           echo "Next version will be: v${NEXT_MAJOR}.${NEXT_MINOR}.${NEXT_PATCH}"
 
+      # Step 5: Run Release Drafter
       - name: Run Release Drafter
         uses: release-drafter/release-drafter@v6.0.0
         with:
@@ -93,12 +100,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Step 6: Create or update release
       - name: Create or update release
         run: |
           NEXT_VERSION="v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}"
           echo "Preparing release for $NEXT_VERSION"
 
-<<<<<<< HEAD
           # Get the commit messages since the last tag
           COMMIT_LOG=$(git log ${LATEST_TAG}..HEAD --oneline)
 
@@ -109,8 +116,6 @@ jobs:
             CHANGELOG="## What's Changed\n$COMMIT_LOG"
           fi
 
-=======
->>>>>>> f013352db314f2cc01d06a0e0a3e6bfe59b5d008
           # Fetch existing releases
           RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
@@ -125,11 +130,7 @@ jobs:
                 \"tag_name\": \"$NEXT_VERSION\",
                 \"target_commitish\": \"main\",
                 \"name\": \"Release $NEXT_VERSION\",
-<<<<<<< HEAD
                 \"body\": \"$CHANGELOG\",
-=======
-                \"body\": \"## What's Changed\\n* No changes\",
->>>>>>> f013352db314f2cc01d06a0e0a3e6bfe59b5d008
                 \"draft\": true,
                 \"prerelease\": false
               }" \
@@ -142,11 +143,7 @@ jobs:
                 \"tag_name\": \"$NEXT_VERSION\",
                 \"target_commitish\": \"main\",
                 \"name\": \"Release $NEXT_VERSION\",
-<<<<<<< HEAD
                 \"body\": \"$CHANGELOG\",
-=======
-                \"body\": \"## What's Changed\\n* Updated changes\",
->>>>>>> f013352db314f2cc01d06a0e0a3e6bfe59b5d008
                 \"draft\": true,
                 \"prerelease\": false
               }" \
