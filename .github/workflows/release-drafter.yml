@@ -11,7 +11,7 @@
         - synchronize
         - closed
   jobs:
-    draft-release:
+    release:
       runs-on: ubuntu-latest
       permissions:
         contents: write
@@ -21,8 +21,48 @@
           with:
             fetch-depth: 0
             fetch-tags: true
+        - name: Determine version bump type
+          id: determine_bump
+          run: |
+            # Default to patch bump
+            BUMP_TYPE="patch"
+  
+            # Check for major bump (breaking changes)
+            if git log -1 --pretty=%B | grep -iq "BREAKING CHANGE"; then
+              BUMP_TYPE="major"
+            # Check for minor bump (new features)
+            elif git log -1 --pretty=%B | grep -iq "feat"; then
+              BUMP_TYPE="minor"
+            fi
+  
+            echo "BUMP_TYPE=$BUMP_TYPE" >> $GITHUB_ENV
+        - name: Increment version
+          run: |
+            # Get the latest tag (e.g., v1.0.0)
+            CURRENT_VERSION=$(git describe --tags --abbrev=0)
+            CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1 | sed 's/v//')
+            CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+            CURRENT_PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+  
+            # Calculate the next version based on the bump type
+            if [ "$BUMP_TYPE" = "major" ]; then
+              NEXT_MAJOR=$((CURRENT_MAJOR + 1))
+              NEXT_MINOR=0
+              NEXT_PATCH=0
+            elif [ "$BUMP_TYPE" = "minor" ]; then
+              NEXT_MINOR=$((CURRENT_MINOR + 1))
+              NEXT_PATCH=0
+            else
+              NEXT_PATCH=$((CURRENT_PATCH + 1))
+            fi
+  
+            echo "NEXT_MAJOR=$NEXT_MAJOR" >> $GITHUB_ENV
+            echo "NEXT_MINOR=$NEXT_MINOR" >> $GITHUB_ENV
+            echo "NEXT_PATCH=$NEXT_PATCH" >> $GITHUB_ENV
         - name: Run Release Drafter
           uses: release-drafter/release-drafter@v6.0.0
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            version: v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}
   
