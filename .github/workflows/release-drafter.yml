@@ -1,143 +1,31 @@
-name: Release Versioning
+name: Release Drafter
 on:
   push:
     branches:
       - main
   pull_request:
     types:
+      - opened
+      - reopened
+      - synchronize
       - closed
 
 jobs:
-  versioning:
+  draft-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Get the latest tag version
-        id: get_version
-        run: |
-          # Get the latest tag (e.g., v1.0.0). If no tags exist, default to v0.0.0
-          LATEST_TAG=$(git describe --tags --abbrev=0 || echo "v0.0.0")
-          echo "Latest tag: $LATEST_TAG"
-
-          # Strip the 'v' from the tag (e.g., v1.0.0 -> 1.0.0)
-          VERSION=${LATEST_TAG#v}
-          echo "Version: $VERSION"
-
-          # Split version into parts
-          IFS='.' read -r -a VERSION_PARTS <<< "$VERSION"
-          MAJOR=${VERSION_PARTS[0]:-0}
-          MINOR=${VERSION_PARTS[1]:-0}
-          PATCH=${VERSION_PARTS[2]:-0}
-
-          echo "MAJOR=$MAJOR" >> $GITHUB_ENV
-          echo "MINOR=$MINOR" >> $GITHUB_ENV
-          echo "PATCH=$PATCH" >> $GITHUB_ENV
-
-      - name: Detect change type (major, minor, patch)
-        id: detect_change
-        run: |
-          if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
-            LABELS=$(echo "${{ toJSON(github.event.pull_request.labels) }}" | jq -r '.[].name' || echo "")
-            echo "Labels applied: $LABELS"
-          else
-            LABELS=""
-          fi
-
-          # Determine the type of version bump
-          if [[ "$LABELS" == *"major"* ]]; then
-            VERSION_TYPE="major"
-          elif [[ "$LABELS" == *"minor"* ]]; then
-            VERSION_TYPE="minor"
-          else
-            VERSION_TYPE="patch" # Default to patch
-          fi
-
-          echo "VERSION_TYPE=$VERSION_TYPE" >> $GITHUB_ENV
-
-      - name: Calculate next version
-        id: calculate_next_version
-        run: |
-          case $VERSION_TYPE in
-            major)
-              NEXT_MAJOR=$((MAJOR + 1))
-              NEXT_MINOR=0
-              NEXT_PATCH=0
-              ;;
-            minor)
-              NEXT_MAJOR=$MAJOR
-              NEXT_MINOR=$((MINOR + 1))
-              NEXT_PATCH=0
-              ;;
-            patch)
-              NEXT_MAJOR=$MAJOR
-              NEXT_MINOR=$MINOR
-              NEXT_PATCH=$((PATCH + 1))
-              ;;
-          esac
-
-          echo "NEXT_MAJOR=$NEXT_MAJOR" >> $GITHUB_ENV
-          echo "NEXT_MINOR=$NEXT_MINOR" >> $GITHUB_ENV
-          echo "NEXT_PATCH=$NEXT_PATCH" >> $GITHUB_ENV
-
-          echo "Next version will be: v${NEXT_MAJOR}.${NEXT_MINOR}.${NEXT_PATCH}"
-
+          fetch-depth: 0   # Fetch entire history (necessary for tags)
+          fetch-tags: true # Ensure tags are fetched
+          
       - name: Run Release Drafter
         uses: release-drafter/release-drafter@v6.0.0
         with:
           config-name: release-drafter.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create or update release
-        run: |
-          NEXT_VERSION="v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}"
-          echo "Preparing release for $NEXT_VERSION"
-
-          # Get the commit messages since the last tag
-          COMMIT_LOG=$(git log ${LATEST_TAG}..HEAD --oneline)
-
-          # If there are no commits, say "No changes"
-          if [ -z "$COMMIT_LOG" ]; then
-            CHANGELOG="No changes"
-          else
-            CHANGELOG="## What's Changed\n$COMMIT_LOG"
-          fi
-
-          # Fetch existing releases
-          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/releases \
-            | jq -r ".[] | select(.tag_name == \"$NEXT_VERSION\").id")
-
-          if [ -z "$RELEASE_ID" ]; then
-            echo "Creating a new release..."
-            curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              -d "{
-                \"tag_name\": \"$NEXT_VERSION\",
-                \"target_commitish\": \"main\",
-                \"name\": \"Release $NEXT_VERSION\",
-                \"body\": \"$CHANGELOG\",
-                \"draft\": true,
-                \"prerelease\": false
-              }" \
-              https://api.github.com/repos/${{ github.repository }}/releases
-          else
-            echo "Updating existing release with ID: $RELEASE_ID"
-            curl -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              -d "{
-                \"tag_name\": \"$NEXT_VERSION\",
-                \"target_commitish\": \"main\",
-                \"name\": \"Release $NEXT_VERSION\",
-                \"body\": \"$CHANGELOG\",
-                \"draft\": true,
-                \"prerelease\": false
-              }" \
-              https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID
-          fi
+     
