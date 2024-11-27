@@ -28,7 +28,7 @@ categories:
     labels:
       - improvement
       - optimization
-change-template: "- {{change.title}} by @{{change.author}} (#{{change.number}})"
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 version-resolver:
   major:
     labels:
