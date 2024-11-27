@@ -1,25 +1,24 @@
-template: |
-  ## What's Changed
-  $CHANGES
-name-template: Release v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}
-tag-template: v${{ env.NEXT_MAJOR }}.${{ env.NEXT_MINOR }}.${{ env.NEXT_PATCH }}
+---
+name-template: v{{version}}
+tag-template: v{{version}}
 categories:
-  - title: 🚀 Features
+  - title: 🚨 Breaking Changes
+    labels:
+      - breaking change
+    bump: major
+  - title: ✨ New Features
     labels:
       - feature
-      - enhancement
-      - new-feature
+    bump: minor
   - title: 🐛 Bug Fixes
     labels:
       - fix
-      - bugfix
-      - bug
-      - defect
-  - title: 🔧 Maintenance
+    bump: patch
+  - title: 🛠 Maintenance
     labels:
       - chore
       - refactor
-      - maintenance
+     bump: patch
   - title: 📖 Documentation Updates
     labels:
       - documentation
@@ -29,6 +28,13 @@ categories:
       - improvement
       - optimization
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+no-changes-template: "- No significant changes"
+template: |
+  ## What's Changed
+  $CHANGES
+
+  ## Contributors
+  $CONTRIBUTORS
 version-resolver:
   major:
     labels:
