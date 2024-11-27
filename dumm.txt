@@ -1,0 +1,1 @@
+"this is the sample script for test the release notes" 
